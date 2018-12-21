@@ -39,18 +39,24 @@ void delete_msg_queues(){
   msgctl(DOWN_QUEUE_ID, IPC_RMID, (struct msqid_ds *) 0);
   exit(0);
 }
-void clock_update(){
+void clock_update(int s){
   printf("[Disk Process] Clock Tick : %d\n",++clk);
   // NO COMMAND , search the down queue for commands
   if(current_command_status == NO_COMMAND){
     printf("[Disk Process] No current command , searching in down queue");
     struct msgbuff message;
-    int  rec_val = msgrcv(up_q_id, &message, sizeof(message.mtext), 0, !IPC_NOWAIT);
+    int  rec_val = msgrcv(DOWN_QUEUE_ID, &message, sizeof(message.mtext), 0, !IPC_NOWAIT);
     if(rec_val == -1 )
       return;
     printf("[Disk Process] Found New Command ,Executing");
     if(message.mtype == DATA_ADD_TYPE){
       current_command_status = 3;
+      for(int i=0;i<10;i++){
+        if(data_slots[i][0] == '\0' ){
+            for(int j=0;j<64;j++) data_slots[i][j] = message.mtext[j];
+            return;
+        }
+      }
     }
     if(message.mtype == DATA_DELETE_TYPE){
       current_command_status = 1;
@@ -74,7 +80,7 @@ void clock_update(){
   }
 }
 
-void count_free_slots(){
+void count_free_slots(int s){
   int free_slots_count = 0;
   for(int i=0;i<10;i++) free_slots_count += (data_slots[i][0]=='\0');
   struct msgbuff message;
@@ -83,12 +89,12 @@ void count_free_slots(){
   int send_val = msgsnd(UP_QUEUE_ID, &message, sizeof(message.mtext) + sizeof(message.count), !IPC_NOWAIT);
   if(send_val == -1 )
     perror("[Disk Process] Failed to Send message (Count of Free Slots)\n");
-  printf("[Disk Process] Sent Count of Free Slots at time %d \n", clk);
+  printf("[Disk Process] Sent Count of Free Slots at time %d ,count is %d \n", clk,free_slots_count);
 }
 
 
 int main(){
-
+  printf("[Disk Process] Process Created with process id %d" , getpid());
   UP_QUEUE_ID = msgget(MASTER_UP, IPC_CREAT|0644);
   DOWN_QUEUE_ID = msgget(MASTER_DOWN, IPC_CREAT|0644);
   if(UP_QUEUE_ID == -1 ||  DOWN_QUEUE_ID == -1){
@@ -102,7 +108,7 @@ int main(){
 
 
 
-  signal (SIGUSR2 , clock_update);
+  signal (SIGUSR1 , count_free_slots);
   signal (SIGUSR2 , clock_update);
   signal (SIGINT, delete_msg_queues);
   while(1){};
