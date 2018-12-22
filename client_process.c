@@ -14,7 +14,8 @@ struct msgbuff
 {
    long mtype;
    char mtext[64];
-   int count;
+   int data;
+   int pid;
 };
 struct cmd
 {
@@ -27,6 +28,9 @@ struct cmd
 
 int MASTER_UP = 1997;
 int MASTER_DOWN = 2018;
+int CLIENT_PID_EXCHANGE_TYPE = 1;
+int ADD_DATA_TYPE = 2;
+int DEL_DATA_TYPE = 3;
 int UP_QUEUE_ID ,DOWN_QUEUE_ID;
 int ADD_TYPE = 0;
 int DEL_TYPE = 1;
@@ -92,6 +96,18 @@ int read_data_file( int argc ,char *argv[]){
   return 1;
 }
 
+void send_pid_to_kernel(){
+  printf("[Client Process] intializing Kernel with Client process PID\n");
+  struct msgbuff message;
+  message.mtype = CLIENT_PID_EXCHANGE_TYPE;
+  message.pid =  getpid();
+  int send_val = msgsnd(UP_QUEUE_ID, &message, sizeof(message.mtext) + sizeof(message.data)+ sizeof(message.pid), !IPC_NOWAIT);
+  if(send_val == -1 )
+    perror("[Client Process] Failed to Send message (pid exchange)\n");
+}
+
+
+
 int main(int argc, char *argv[]){
   if(read_data_file(argc,argv) != 1) return 0;
 
@@ -104,7 +120,7 @@ int main(int argc, char *argv[]){
   }
   printf("[Client Process] Successfully Created/Joined Channels\n");
 
-  //send_pid_to_kernel();
+  send_pid_to_kernel();
 
 
   signal (SIGUSR2 , clock_update);
@@ -112,13 +128,30 @@ int main(int argc, char *argv[]){
   while(1){
     if(current_command >= commands_count){
       printf("[Client Process] Finished all commands . Exiting ...\n");
-      return 0;
+      break;
     }
     printf("[Client Process] Processing Command #%d  \n" , current_command);
     struct cmd curr_cmd = commands_queue[current_command++];
-
-
+    struct msgbuff message;
+    message.pid =  getpid();
+    if(curr_cmd.cmd_type == ADD_TYPE){
+      message.mtype = ADD_DATA_TYPE;
+      strncpy(message.mtext, curr_cmd.data,64);
+    }
+    else{
+      message.mtype = DEL_DATA_TYPE;
+      message.data = curr_cmd.del_idx;
+    }
+    int send_val = msgsnd(UP_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), !IPC_NOWAIT);
+    if(send_val == -1 )
+      perror("[Client Process] Failed to Send message (command issuing)\n");
+    printf("[Client Process] Command Issued . Waiting for Response \n");
+    int  rec_val = msgrcv(DOWN_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), 0, !IPC_NOWAIT);
+    if(rec_val == -1 )
+      perror("[Client Process] Failed to Recieve message (command response)\n");
+    printf("[Client Process] Response arrived \n");
 
   };
+  while(1){}
 
 }
