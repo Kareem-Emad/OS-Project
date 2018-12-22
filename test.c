@@ -43,9 +43,11 @@ int main(){
   }
   else{
     printf("[test Process] recieved message with pid %d\n", message.count);
+    int pid = message.count;
     kill(message.count, SIGUSR1);
     int  rec_val = msgrcv(UP_QUEUE_ID, &message, sizeof(message.mtext) + sizeof(message.count), 0, !IPC_NOWAIT);
     printf("[test Process] recieved message with count of slots %d\n", message.count);
+    kill(pid, SIGUSR2);
 
 
   }
