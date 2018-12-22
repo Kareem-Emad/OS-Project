@@ -35,8 +35,20 @@ int main(){
     perror("[test Process] Fatal Error:Failed to Create up/down queues \n");
   }
   printf("[test Process] Successfully Created/Joined Channels\n");
+  struct msgbuff message;
 
-  kill(7410, SIGUSR1);
+  int  rec_val = msgrcv(UP_QUEUE_ID, &message, sizeof(message.mtext) + sizeof(message.count), 0, !IPC_NOWAIT);
+  if(rec_val == -1 ){
+    perror("[test Process]  Failed to Recieve Message");
+  }
+  else{
+    printf("[test Process] recieved message with pid %d\n", message.count);
+    kill(message.count, SIGUSR1);
+    int  rec_val = msgrcv(UP_QUEUE_ID, &message, sizeof(message.mtext) + sizeof(message.count), 0, !IPC_NOWAIT);
+    printf("[test Process] recieved message with count of slots %d\n", message.count);
+
+
+  }
 
 
   while(1){};

@@ -20,7 +20,7 @@ struct msgbuff
 int MASTER_UP = 2020;
 int MASTER_DOWN = 2015;
 int UP_QUEUE_ID ,DOWN_QUEUE_ID;
-int DATA_COUNT_TYPE = 0;
+int DATA_COUNT_TYPE = 5;
 int DATA_ADD_TYPE = 1;
 int DATA_DELETE_TYPE = 2;
 int DISK_PID_EXCHANGE_TYPE = 3;
@@ -44,9 +44,10 @@ void clock_update(int s){
 void count_free_slots(int s){
   int free_slots_count = 0;
   for(int i=0;i<10;i++) free_slots_count += (data_slots[i][0]=='\0');
+
   struct msgbuff message;
-  message.count = free_slots_count;
   message.mtype = DATA_COUNT_TYPE;
+  message.count = free_slots_count;
   int send_val = msgsnd(UP_QUEUE_ID, &message, sizeof(message.mtext) + sizeof(message.count), !IPC_NOWAIT);
   if(send_val == -1 )
     perror("[Disk Process] Failed to Send message (Count of Free Slots)\n");
