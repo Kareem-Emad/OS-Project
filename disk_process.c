@@ -41,43 +41,6 @@ void delete_msg_queues(){
 }
 void clock_update(int s){
   printf("[Disk Process] Clock Tick : %d\n",++clk);
-  // NO COMMAND , search the down queue for commands
-  if(current_command_status == NO_COMMAND){
-    printf("[Disk Process] No current command , searching in down queue");
-    struct msgbuff message;
-    int  rec_val = msgrcv(DOWN_QUEUE_ID, &message, sizeof(message.mtext), 0, !IPC_NOWAIT);
-    if(rec_val == -1 )
-      return;
-    printf("[Disk Process] Found New Command ,Executing");
-    if(message.mtype == DATA_ADD_TYPE){
-      current_command_status = 3;
-      for(int i=0;i<10;i++){
-        if(data_slots[i][0] == '\0' ){
-            for(int j=0;j<64;j++) data_slots[i][j] = message.mtext[j];
-            return;
-        }
-      }
-    }
-    if(message.mtype == DATA_DELETE_TYPE){
-      current_command_status = 1;
-      int del_idx = message.count;
-      for(int i=0;i<64;i++) data_slots[del_idx][i] = '\0';
-    }
-
-  }
-  else{
-    //command finished , send results to Kernel
-    if(current_command_status == COMMAND_DONE){
-      printf("[Disk Process] Finished Current Command, Sending Data to kernel at time %d \n",clk);
-      int send_val = msgsnd(UP_QUEUE_ID, &command_data, sizeof(command_data.mtext) + sizeof(command_data.count), !IPC_NOWAIT);
-      if(send_val == -1 )
-        perror("[Disk Process] Failed to Send message (command results)\n");
-    }
-    //command in progress
-    else{
-      current_command_status--;
-    }
-  }
 }
 
 void count_free_slots(int s){
@@ -90,6 +53,46 @@ void count_free_slots(int s){
   if(send_val == -1 )
     perror("[Disk Process] Failed to Send message (Count of Free Slots)\n");
   printf("[Disk Process] Sent Count of Free Slots at time %d ,count is %d \n", clk,free_slots_count);
+}
+
+void add_new_data(struct msgbuff message){
+  for(int i=0;i<10;i++){
+    if(data_slots[i][0] == '\0' ){
+        for(int j=0;j<64;j++) data_slots[i][j] = message.mtext[j];
+        sleep(3);
+        printf("[Disk Process] Finished Current Command, Sending Data to kernel at time %d \n",clk);
+        int send_val = msgsnd(UP_QUEUE_ID, &command_data, sizeof(command_data.mtext) + sizeof(command_data.count), !IPC_NOWAIT);
+        if(send_val == -1 )
+          perror("[Disk Process] Failed to Send message (command results)\n");
+        return;
+    }
+  }
+}
+
+void delete_data(struct msgbuff message){
+  int del_idx = message.count;
+  for(int i=0;i<64;i++) data_slots[del_idx][i] = '\0';
+  sleep(1);
+  printf("[Disk Process] Finished Current Command, Sending Data to kernel at time %d \n",clk);
+  int send_val = msgsnd(UP_QUEUE_ID, &command_data, sizeof(command_data.mtext) + sizeof(command_data.count), !IPC_NOWAIT);
+  if(send_val == -1 )
+    perror("[Disk Process] Failed to Send message (command results)\n");
+  return;
+}
+
+void search_for_command(){
+  printf("[Disk Process] No current command , searching in down queue");
+  struct msgbuff message;
+  int  rec_val = msgrcv(DOWN_QUEUE_ID, &message, sizeof(message.mtext), 0, !IPC_NOWAIT);
+  if(rec_val == -1 )
+    return;
+  printf("[Disk Process] Found New Command ,Executing");
+  if(message.mtype == DATA_ADD_TYPE){
+    add_new_data(message);
+  }
+  if(message.mtype == DATA_DELETE_TYPE){
+    delete_data(message);
+  }
 }
 
 
@@ -106,11 +109,11 @@ int main(){
     for(int j=0;j<64;j++) data_slots[i][j] = '\0';
   }
 
-
-
   signal (SIGUSR1 , count_free_slots);
   signal (SIGUSR2 , clock_update);
   signal (SIGINT, delete_msg_queues);
-  while(1){};
+  while(1){
+    search_for_command();
+  };
 
 }
