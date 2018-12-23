@@ -59,6 +59,7 @@ void add_new_data(struct msgbuff message){
         while(clk < starting_time +3){}
         printf("[Disk Process] Finished Current Command, Sending Data to kernel at time %d \n",clk);
         command_data.mtype = DISK_DONE_TYPE;
+        command_data.pid = DATA_ADD_TYPE;
         int send_val = msgsnd(UP_QUEUE_ID, &command_data, sizeof(command_data) - sizeof(command_data.mtype), !IPC_NOWAIT);
         if(send_val == -1 )
           perror("[Disk Process] Failed to Send message (command results)\n");
@@ -76,6 +77,8 @@ void delete_data(struct msgbuff message){
 
   printf("[Disk Process] Finished Current Command, Sending Data to kernel at time %d \n",clk);
   command_data.mtype = DISK_DONE_TYPE;
+  command_data.pid = DATA_DELETE_TYPE;
+
   int send_val = msgsnd(UP_QUEUE_ID, &command_data, sizeof(command_data) - sizeof(command_data.mtype), !IPC_NOWAIT);
   if(send_val == -1 )
     perror("[Disk Process] Failed to Send message (command results)\n");

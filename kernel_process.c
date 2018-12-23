@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <ctype.h>
+#include <stdlib.h>
 
 struct msgbuff
 {
@@ -41,7 +42,7 @@ int clients[1000];
 int clients_count;
 int waiting_for_disk_response;
 int current_client_pid;
-
+int clk;
 
 void delete_msg_queues(){
   printf("[Kernel Process] Shutting Down Communication\n");
@@ -53,7 +54,7 @@ void delete_msg_queues(){
 }
 
 void trigger_clk(){
-    printf("[Kernel Process] clk Trigger \n");
+    printf("[Kernel Process] clk Trigger %d  \n", ++clk);
     kill(DISK_PID, SIGUSR2);
     for(int i=0;i<clients_count;i++)
       kill(clients[i], SIGUSR2);
@@ -64,9 +65,18 @@ void register_client(int pid){
 }
 void process_add_command(char data[64]){
   printf("[Kernel Process] Recieved Add Command \n");
-
-  waiting_for_disk_response = 1;
+  kill(DISK_PID,SIGUSR1);
   struct msgbuff message;
+  int  rec_val = msgrcv(DISK_UP_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), 0, !IPC_NOWAIT);
+  if(message.data <= 0){
+    printf("[Kernel Process] Disk is Full ,Add operation rejected \n");
+    message.mtype = current_client_pid;
+    message.pid = 3;
+    int send_val = msgsnd(CLIENT_DOWN_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), !IPC_NOWAIT);
+
+    return;
+  }
+  waiting_for_disk_response = 1;
   message.mtype = ADD_DATA_TYPE;
   strncpy(message.mtext,data,64);
   int send_val = msgsnd(DISK_DOWN_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), !IPC_NOWAIT);
@@ -126,6 +136,13 @@ int main(int argc, char *argv[]){
   printf("[Kernel Process] Disk is up with id = %d \n",message.pid);
   DISK_PID = message.pid;
 
+
+  printf("[Kernel Process] waiting for Client Process to be up \n");
+  rec_val = msgrcv(CLIENT_UP_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), 0, !IPC_NOWAIT);
+  printf("[Kernel Process] Client is up with id = %d \n",message.pid);
+  register_client(message.pid);
+
+
   while(1){
     trigger_clk();
     sleep(1);
@@ -140,11 +157,13 @@ int main(int argc, char *argv[]){
       waiting_for_disk_response = 0;
       struct msgbuff message;
       message.mtype = current_client_pid;
+      message.pid = ADD_DATA_TYPE == message.pid ? 0 : 1;
       int send_val = msgsnd(CLIENT_DOWN_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), !IPC_NOWAIT);
       if(send_val == -1 )
         perror("[Kernel Process] Failed to Send message (Client Feedback)\n");
       read_client_command();
     }
+    sleep(1);
   }
 
 }
