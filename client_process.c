@@ -101,7 +101,7 @@ void send_pid_to_kernel(){
   struct msgbuff message;
   message.mtype = CLIENT_PID_EXCHANGE_TYPE;
   message.pid =  getpid();
-  int send_val = msgsnd(UP_QUEUE_ID, &message, sizeof(message.mtext) + sizeof(message.data)+ sizeof(message.pid), !IPC_NOWAIT);
+  int send_val = msgsnd(UP_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), !IPC_NOWAIT);
   if(send_val == -1 )
     perror("[Client Process] Failed to Send message (pid exchange)\n");
 }
@@ -130,8 +130,12 @@ int main(int argc, char *argv[]){
       printf("[Client Process] Finished all commands . Exiting ...\n");
       break;
     }
-    printf("[Client Process] Processing Command #%d  \n" , current_command);
     struct cmd curr_cmd = commands_queue[current_command++];
+    if(curr_cmd.t > clk){
+      current_command--;
+      continue;
+    }
+    printf("[Client Process] Processing Command #%d  \n" , current_command);
     struct msgbuff message;
     message.pid =  getpid();
     if(curr_cmd.cmd_type == ADD_TYPE){

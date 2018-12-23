@@ -48,7 +48,7 @@ void count_free_slots(int s){
   struct msgbuff message;
   message.mtype = DATA_COUNT_TYPE;
   message.count = free_slots_count;
-  int send_val = msgsnd(UP_QUEUE_ID, &message, sizeof(message.mtext) + sizeof(message.count), !IPC_NOWAIT);
+  int send_val = msgsnd(UP_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), !IPC_NOWAIT);
   if(send_val == -1 )
     perror("[Disk Process] Failed to Send message (Count of Free Slots)\n");
   printf("[Disk Process] Sent Count of Free Slots at time %d ,count is %d \n", clk,free_slots_count);
@@ -61,7 +61,7 @@ void add_new_data(struct msgbuff message){
         sleep(3);
         printf("[Disk Process] Finished Current Command, Sending Data to kernel at time %d \n",clk);
         command_data.mtype = DISK_DONE_TYPE;
-        int send_val = msgsnd(UP_QUEUE_ID, &command_data, sizeof(command_data.mtext) + sizeof(command_data.count), !IPC_NOWAIT);
+        int send_val = msgsnd(UP_QUEUE_ID, &command_data, sizeof(command_data) - sizeof(command_data.mtype), !IPC_NOWAIT);
         if(send_val == -1 )
           perror("[Disk Process] Failed to Send message (command results)\n");
         return;
@@ -75,7 +75,7 @@ void delete_data(struct msgbuff message){
   sleep(1);
   printf("[Disk Process] Finished Current Command, Sending Data to kernel at time %d \n",clk);
   command_data.mtype = DISK_DONE_TYPE;
-  int send_val = msgsnd(UP_QUEUE_ID, &command_data, sizeof(command_data.mtext) + sizeof(command_data.count), !IPC_NOWAIT);
+  int send_val = msgsnd(UP_QUEUE_ID, &command_data, sizeof(command_data) - sizeof(command_data.mtype), !IPC_NOWAIT);
   if(send_val == -1 )
     perror("[Disk Process] Failed to Send message (command results)\n");
   return;
@@ -84,7 +84,7 @@ void delete_data(struct msgbuff message){
 void search_for_command(){
   printf("[Disk Process] No current command , searching in down queue\n");
   struct msgbuff message;
-  int  rec_val = msgrcv(DOWN_QUEUE_ID, &message, sizeof(message.mtext), 0, !IPC_NOWAIT);
+  int  rec_val = msgrcv(DOWN_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), 0, !IPC_NOWAIT);
   if(rec_val == -1 )
     return;
   printf("[Disk Process] Found New Command ,Executing\n");
@@ -101,7 +101,7 @@ void send_pid_to_kernel(){
   struct msgbuff message;
   message.mtype = DISK_PID_EXCHANGE_TYPE;
   message.count =  getpid();
-  int send_val = msgsnd(UP_QUEUE_ID, &message, sizeof(message.mtext) + sizeof(message.count), !IPC_NOWAIT);
+  int send_val = msgsnd(UP_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), !IPC_NOWAIT);
   if(send_val == -1 )
     perror("[Disk Process] Failed to Send message (pid exchange)\n");
 }
