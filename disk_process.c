@@ -39,9 +39,13 @@ void clock_update(int s){
 
 void count_free_slots(int s){
   int free_slots_count = 0;
-  for(int i=0;i<10;i++) free_slots_count += (data_slots[i][0]=='\0');
-
   struct msgbuff message;
+
+  for(int i=0;i<10;i++) {
+    free_slots_count += (data_slots[i][0]=='\0');
+    message.mtext[i] = (data_slots[i][0]=='\0');
+  }
+
   message.mtype = DATA_COUNT_TYPE;
   message.data = free_slots_count;
   int send_val = msgsnd(UP_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), !IPC_NOWAIT);
