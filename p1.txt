@@ -1,0 +1,4 @@
+1 ADD hello_1
+2 DEL 5
+3 ADD hello_2
+4 DEL 6
