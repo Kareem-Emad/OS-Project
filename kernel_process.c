@@ -136,11 +136,13 @@ int main(int argc, char *argv[]){
   printf("[Kernel Process] Disk is up with id = %d \n",message.pid);
   DISK_PID = message.pid;
 
-
-  printf("[Kernel Process] waiting for Client Process to be up \n");
-  rec_val = msgrcv(CLIENT_UP_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), 0, !IPC_NOWAIT);
-  printf("[Kernel Process] Client is up with id = %d \n",message.pid);
-  register_client(message.pid);
+  int clients_wait = 2;
+  while(clients_wait--){
+    printf("[Kernel Process] waiting for Client Process to be up \n");
+    rec_val = msgrcv(CLIENT_UP_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), 0, !IPC_NOWAIT);
+    printf("[Kernel Process] Client is up with id = %d \n",message.pid);
+    register_client(message.pid);
+  }
 
 
   while(1){

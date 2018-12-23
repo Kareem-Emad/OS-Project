@@ -1,0 +1,4 @@
+1 ADD bye_1
+2 ADD bye_2
+3 DEL 0
+4 ADD bye_3

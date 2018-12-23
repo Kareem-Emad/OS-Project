@@ -1,0 +1,4 @@
+1 ADD hello_1
+2 ADD hello_2
+3 DEL 0
+4 ADD hello_3

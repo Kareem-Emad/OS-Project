@@ -1,9 +1,0 @@
-{
-    "files.associations": {
-        "stdio.h": "c",
-        "xstring": "c",
-        "xutility": "c",
-        "system_error": "c",
-        "xlocale": "c"
-    }
-}
