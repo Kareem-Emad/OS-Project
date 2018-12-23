@@ -86,10 +86,10 @@ void read_client_command(){
   if(message.mtype == CLIENT_PID_EXCHANGE_TYPE){
     register_client(message.pid);
   }
-  if(message.mtype == ADD_DATA_TYPE){
+  if(message.pid == ADD_DATA_TYPE){
     process_add_command(message.mtext);
   }
-  if(message.mtype == DEL_DATA_TYPE){
+  if(message.pid == DEL_DATA_TYPE){
     process_del_command(message.data);
   }
 }
