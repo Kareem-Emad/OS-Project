@@ -30,7 +30,7 @@ int MASTER_UP = 1997;
 int MASTER_DOWN = 2018;
 int CLIENT_PID_EXCHANGE_TYPE = 1;
 int ADD_DATA_TYPE = 2;
-int DEL_DATA_TYPE = 3;
+int DEL_DATA_TYPE = 4;
 int UP_QUEUE_ID ,DOWN_QUEUE_ID;
 int ADD_TYPE = 0;
 int DEL_TYPE = 1;
@@ -42,12 +42,7 @@ int clk;
 
 
 
-void delete_msg_queues(){
-  printf("[Client Process] Shutting Down Communication\n");
-  msgctl(UP_QUEUE_ID, IPC_RMID, (struct msqid_ds *) 0);
-  msgctl(DOWN_QUEUE_ID, IPC_RMID, (struct msqid_ds *) 0);
-  exit(0);
-}
+
 void clock_update(int s){
   printf("[Client Process] Clock Tick : %d\n",++clk);
 }
@@ -124,7 +119,6 @@ int main(int argc, char *argv[]){
 
 
   signal (SIGUSR2 , clock_update);
-  signal (SIGINT, delete_msg_queues);
   while(1){
     if(current_command >= commands_count){
       printf("[Client Process] Finished all commands . Exiting ...\n");

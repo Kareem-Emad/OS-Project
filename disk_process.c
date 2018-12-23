@@ -14,29 +14,25 @@ struct msgbuff
 {
    long mtype;
    char mtext[64];
-   int count;
+   int data;
+   int pid;
 };
 
 int MASTER_UP = 2020;
 int MASTER_DOWN = 2015;
 int UP_QUEUE_ID ,DOWN_QUEUE_ID;
-int DATA_COUNT_TYPE = 5;
-int DATA_ADD_TYPE = 1;
-int DATA_DELETE_TYPE = 2;
+int DATA_ADD_TYPE = 2;
+int DATA_DELETE_TYPE = 4;
 int DISK_PID_EXCHANGE_TYPE = 3;
-int DISK_DONE_TYPE = 4;
+int DATA_COUNT_TYPE = 15;
+int DISK_DONE_TYPE = 16;
 struct msgbuff command_data;
 int clk;
 
 
 char data_slots[10][64];
 
-void delete_msg_queues(){
-  printf("[Disk Process] Shutting Down Communication\n");
-  msgctl(UP_QUEUE_ID, IPC_RMID, (struct msqid_ds *) 0);
-  msgctl(DOWN_QUEUE_ID, IPC_RMID, (struct msqid_ds *) 0);
-  exit(0);
-}
+
 void clock_update(int s){
   printf("[Disk Process] Clock Tick : %d\n",++clk);
 }
@@ -47,7 +43,7 @@ void count_free_slots(int s){
 
   struct msgbuff message;
   message.mtype = DATA_COUNT_TYPE;
-  message.count = free_slots_count;
+  message.data = free_slots_count;
   int send_val = msgsnd(UP_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), !IPC_NOWAIT);
   if(send_val == -1 )
     perror("[Disk Process] Failed to Send message (Count of Free Slots)\n");
@@ -70,7 +66,7 @@ void add_new_data(struct msgbuff message){
 }
 
 void delete_data(struct msgbuff message){
-  int del_idx = message.count;
+  int del_idx = message.data;
   for(int i=0;i<64;i++) data_slots[del_idx][i] = '\0';
   sleep(1);
   printf("[Disk Process] Finished Current Command, Sending Data to kernel at time %d \n",clk);
@@ -100,7 +96,7 @@ void send_pid_to_kernel(){
   printf("[Disk Process] intializing Kernel with Disk process PID\n");
   struct msgbuff message;
   message.mtype = DISK_PID_EXCHANGE_TYPE;
-  message.count =  getpid();
+  message.pid =  getpid();
   int send_val = msgsnd(UP_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), !IPC_NOWAIT);
   if(send_val == -1 )
     perror("[Disk Process] Failed to Send message (pid exchange)\n");
@@ -123,7 +119,6 @@ int main(){
 
   signal (SIGUSR1 , count_free_slots);
   signal (SIGUSR2 , clock_update);
-  signal (SIGINT, delete_msg_queues);
   while(1){
     search_for_command();
   };
