@@ -138,19 +138,19 @@ int main(int argc, char *argv[]){
       strncpy(message.mtext, curr_cmd.data,64);
     }
     else{
-      message.pid = DEL_DATA_TYPE;
       message.mtype = getpid();
+      message.pid = DEL_DATA_TYPE;
       message.data = curr_cmd.del_idx;
     }
     int send_val = msgsnd(UP_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), !IPC_NOWAIT);
     if(send_val == -1 )
       perror("[Client Process] Failed to Send message (command issuing)\n");
     printf("[Client Process] Command Issued . Waiting for Response \n");
-    while(1){
-      int  rec_val = msgrcv(DOWN_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), getpid(), IPC_NOWAIT);
-      if(rec_val == -1 ) break;
+    int  rec_val =  msgrcv(DOWN_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), getpid(), !IPC_NOWAIT);
+    while(rec_val == -1 ){
+      rec_val =  msgrcv(DOWN_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), getpid(), !IPC_NOWAIT);
     }
-
+      //perror("[Client Process] Failed to Recieve message (command response)\n");
     printf("[Client Process] Response arrived \n");
 
   };
