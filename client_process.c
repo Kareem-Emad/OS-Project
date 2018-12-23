@@ -146,14 +146,13 @@ int main(int argc, char *argv[]){
     if(send_val == -1 )
       perror("[Client Process] Failed to Send message (command issuing)\n");
     printf("[Client Process] Command Issued . Waiting for Response \n");
-    int  rec_val =  msgrcv(DOWN_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), getpid(), !IPC_NOWAIT);
+    int  rec_val =  msgrcv(DOWN_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), getpid(), IPC_NOWAIT);
     while(rec_val == -1 ){
-      rec_val =  msgrcv(DOWN_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), getpid(), !IPC_NOWAIT);
+      rec_val =  msgrcv(DOWN_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), getpid(), IPC_NOWAIT);
     }
       //perror("[Client Process] Failed to Recieve message (command response)\n");
     printf("[Client Process] Response arrived \n");
 
   };
-  while(1){}
 
 }

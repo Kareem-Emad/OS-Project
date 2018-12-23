@@ -51,14 +51,13 @@ void count_free_slots(int s){
 }
 
 void add_new_data(struct msgbuff message){
-  int starting_clk = clk;
+  int starting_time = clk;
   for(int i=0;i<10;i++){
     if(data_slots[i][0] == '\0' ){
         for(int j=0;j<64;j++) data_slots[i][j] = message.mtext[j];
         //sleep(3);
-        while(clk < starting_clk +3){}
-
-        printf("[Disk Process] Finished Current Command (A), Sending Data to kernel at time %d \n",clk);
+        while(clk < starting_time +3){}
+        printf("[Disk Process] Finished Current Command, Sending Data to kernel at time %d \n",clk);
         command_data.mtype = DISK_DONE_TYPE;
         int send_val = msgsnd(UP_QUEUE_ID, &command_data, sizeof(command_data) - sizeof(command_data.mtype), !IPC_NOWAIT);
         if(send_val == -1 )
@@ -69,9 +68,12 @@ void add_new_data(struct msgbuff message){
 }
 
 void delete_data(struct msgbuff message){
+  int starting_time = clk;
   int del_idx = message.data;
   for(int i=0;i<64;i++) data_slots[del_idx][i] = '\0';
-  sleep(1);
+  //sleep(1);
+  while(clk < starting_time +1){}
+
   printf("[Disk Process] Finished Current Command, Sending Data to kernel at time %d \n",clk);
   command_data.mtype = DISK_DONE_TYPE;
   int send_val = msgsnd(UP_QUEUE_ID, &command_data, sizeof(command_data) - sizeof(command_data.mtype), !IPC_NOWAIT);

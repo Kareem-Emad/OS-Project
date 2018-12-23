@@ -40,6 +40,8 @@ int DISK_DONE_TYPE = 16;
 int clients[1000];
 int clients_count;
 int waiting_for_disk_response;
+int current_client_pid;
+
 
 void delete_msg_queues(){
   printf("[Kernel Process] Shutting Down Communication\n");
@@ -57,10 +59,12 @@ void trigger_clk(){
       kill(clients[i], SIGUSR2);
 }
 void register_client(int pid){
-  printf("[Kernel Process] Registering new client process with pid %d", pid);
+  printf("[Kernel Process] Registering new client process with pid %d\n", pid);
   clients[clients_count++] = pid;
 }
 void process_add_command(char data[64]){
+  printf("[Kernel Process] Recieved Add Command \n");
+
   waiting_for_disk_response = 1;
   struct msgbuff message;
   message.mtype = ADD_DATA_TYPE;
@@ -71,6 +75,8 @@ void process_add_command(char data[64]){
 
 }
 void process_del_command(char del_idx){
+  printf("[Kernel Process] Recieved Delete Command \n");
+
   waiting_for_disk_response = 1;
   struct msgbuff message;
   message.mtype = DEL_DATA_TYPE;
@@ -83,6 +89,7 @@ void read_client_command(){
   printf("[Kernel Process] checking commands avaliable to execute \n");
   struct msgbuff message;
   int  rec_val = msgrcv(CLIENT_UP_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), 0, IPC_NOWAIT);
+  current_client_pid = message.mtype;
   if(message.mtype == CLIENT_PID_EXCHANGE_TYPE){
     register_client(message.pid);
   }
@@ -128,9 +135,14 @@ int main(int argc, char *argv[]){
     else{
       printf("[Kernel Process] Check if Disk is Done\n");
       int  rec_val = msgrcv(DISK_UP_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), 0, IPC_NOWAIT);
-      if(message.mtype == -1) continue;
+      if(message.mtype != DISK_DONE_TYPE || rec_val == -1) continue;
       printf("[Kernel Process] Disk is Done (Asserted)\n");
       waiting_for_disk_response = 0;
+      struct msgbuff message;
+      message.mtype = current_client_pid;
+      int send_val = msgsnd(CLIENT_DOWN_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), !IPC_NOWAIT);
+      if(send_val == -1 )
+        perror("[Kernel Process] Failed to Send message (Client Feedback)\n");
       read_client_command();
     }
   }
