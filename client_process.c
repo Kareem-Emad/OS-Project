@@ -129,6 +129,8 @@ int main(int argc, char *argv[]){
       current_command--;
       continue;
     }
+
+    
     printf("[Client Process] Processing Command #%d  \n" , current_command);
     struct msgbuff message;
     message.pid =  getpid();

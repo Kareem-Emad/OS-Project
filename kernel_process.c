@@ -59,12 +59,16 @@ void trigger_clk(){
     for(int i=0;i<clients_count;i++)
       kill(clients[i], SIGUSR2);
 }
+//###############################################################
+//####################Processing Commands########################
+//###############################################################
 void register_client(int pid){
   printf("[Kernel Process] Registering new client process with pid %d\n", pid);
   clients[clients_count++] = pid;
 }
 void process_add_command(char data[64]){
-  printf("[Kernel Process] Recieved Add Command \n");
+  printf("[Kernel Process] Recieved Add Command from process %d \n",current_client_pid);
+  printf("[Kernel Process] validating command  with Disk (requesting count of free slots) \n");
   kill(DISK_PID,SIGUSR1);
   struct msgbuff message;
   int  rec_val = msgrcv(DISK_UP_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), 0, !IPC_NOWAIT);
@@ -85,12 +89,14 @@ void process_add_command(char data[64]){
 
 }
 void process_del_command(char del_idx){
-  printf("[Kernel Process] Recieved Delete Command \n");
+  printf("[Kernel Process] Recieved Delete Command from process %d \n",current_client_pid);
+  printf("[Kernel Process] validating command  with Disk (requesting count of free slots) \n");
   kill(DISK_PID,SIGUSR1);
   struct msgbuff message;
   int  rec_val = msgrcv(DISK_UP_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), 0, !IPC_NOWAIT);
   if(message.mtext[del_idx] == 1){
     printf("[Kernel Process] Slot is Empty ,Del operation rejected \n");
+    printf("[Kernel Process] ");
     for(int i=0;i<10;i++){
       printf("%d ",message.mtext[i]);
     }
@@ -122,10 +128,13 @@ void read_client_command(){
     process_del_command(message.data);
   }
 }
+//###############################################################
+//############################Main###############################
+//###############################################################
 
 int main(int argc, char *argv[]){
 
-
+  //initializing system queses
   printf("[Kernel Process] Process Created with process id %d\n" , getpid());
   DISK_UP_QUEUE_ID = msgget(DISK_MASTER_UP, IPC_CREAT|0644);
   DISK_DOWN_QUEUE_ID = msgget(DISK_MASTER_DOWN, IPC_CREAT|0644);
@@ -141,6 +150,8 @@ int main(int argc, char *argv[]){
 
   signal (SIGINT, delete_msg_queues);
 
+
+  //waiting for disk to connect
   printf("[Kernel Process] waiting for Disk Process to be up \n");
 
   struct msgbuff message;
@@ -156,7 +167,7 @@ int main(int argc, char *argv[]){
     register_client(message.pid);
   }
 
-
+  //iteratively processing commands from processes
   while(1){
     trigger_clk();
     sleep(1);
@@ -173,10 +184,10 @@ int main(int argc, char *argv[]){
       message.mtype = current_client_pid;
       message.pid = ADD_DATA_TYPE == message.pid ? 0 : 1;
       if(message.pid == 0){
-        printf("[Kernel Process] ADD COMMAND successfull. Sending Feedback \n");
+        printf("[Kernel Process] ADD COMMAND successfull. Sending Feedback to process %d \n",current_client_pid);
       }
       else{
-        printf("[Kernel Process] DEL COMMAND successfull. Sending Feedback \n");
+        printf("[Kernel Process] DEL COMMAND successfull. Sending Feedback to process %d \n",current_client_pid);
       }
       int send_val = msgsnd(CLIENT_DOWN_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), !IPC_NOWAIT);
       if(send_val == -1 )
