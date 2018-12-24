@@ -176,11 +176,16 @@ int main(int argc, char *argv[]){
     usleep(500 *1000);
     if(waiting_for_disk_response == 0){
       read_client_command();
+      usleep(250 *1000);
+
     }
     else{
       printf("[Kernel Process] Check if Disk is Done\n");
       int  rec_val = msgrcv(DISK_UP_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), 0, IPC_NOWAIT);
-      if(message.mtype != DISK_DONE_TYPE || rec_val == -1) continue;
+      if(message.mtype != DISK_DONE_TYPE || rec_val == -1){
+        usleep(500 *1000);
+        continue;
+      }
       printf("[Kernel Process] Disk is Done (Asserted)\n");
       waiting_for_disk_response = 0;
       struct msgbuff message;
@@ -195,9 +200,11 @@ int main(int argc, char *argv[]){
       int send_val = msgsnd(CLIENT_DOWN_QUEUE_ID, &message, sizeof(message) - sizeof(message.mtype), !IPC_NOWAIT);
       if(send_val == -1 )
         perror("[Kernel Process] Failed to Send message (Client Feedback)\n");
+      usleep(250 *1000);
+
       read_client_command();
     }
-    usleep(500 *1000);
+    usleep(250 *1000);
   }
 
 }

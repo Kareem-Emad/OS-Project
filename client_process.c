@@ -78,7 +78,8 @@ int read_data_file( int argc ,char *argv[]){
       commands_queue[commands_count++] = curr_cmd;
     }
     else{
-      fscanf(fp, "%s", command_data);
+      fscanf(fp, " %[^\n.]s", command_data);
+      printf("%d %s %s\n",t,command,command_data);
       struct cmd curr_cmd;
       curr_cmd.t =t ;
       curr_cmd.cmd_type = ADD_TYPE;
@@ -130,7 +131,7 @@ int main(int argc, char *argv[]){
       continue;
     }
 
-    
+
     printf("[Client Process] Processing Command #%d  \n" , current_command);
     struct msgbuff message;
     message.pid =  getpid();
