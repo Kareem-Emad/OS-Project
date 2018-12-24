@@ -10,6 +10,9 @@
 #include <sys/wait.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
+
 
 struct msgbuff
 {
@@ -170,7 +173,7 @@ int main(int argc, char *argv[]){
   //iteratively processing commands from processes
   while(1){
     trigger_clk();
-    sleep(1);
+    usleep(500 *1000);
     if(waiting_for_disk_response == 0){
       read_client_command();
     }
@@ -194,7 +197,7 @@ int main(int argc, char *argv[]){
         perror("[Kernel Process] Failed to Send message (Client Feedback)\n");
       read_client_command();
     }
-    sleep(1);
+    usleep(500 *1000);
   }
 
 }
